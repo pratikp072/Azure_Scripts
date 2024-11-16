@@ -1,0 +1,63 @@
+# Check the installed Azure CLI version
+az --version
+
+# Log in interactively (using a web-based login prompt)
+az login
+
+# Alternatively, log in using a device code (this can be helpful for headless environments)
+az login --use-device-code
+
+# Start an interactive session in the Azure CLI
+az interactive
+
+# Create a new resource group 
+az group create --location "West US 2" --name "ResourceGroup1"
+
+# Create a virtual network 
+az network vnet create --address-prefix "10.0.0.0/16" --name "Vnet1" --resource-group "ResourceGroup1" --subnet-name "Subnet1"
+
+# Create a subnet within an existing virtual network
+az network vnet subnet create --name "Subnet1" --address-prefixes "10.0.0.0/20" --resource-group "ResourceGroup1" --vnet-name "Vnet1"
+
+# List all virtual networks in the subscription
+az network vnet list --output table
+
+# Show details of a specific virtual network
+az network vnet show -n "Vnet1" -g "ResourceGroup1"
+
+# List available VM images for creation
+az vm image list --output table
+
+# List available VM sizes in "West US 2"
+az vm list-sizes --location "West US 2" --output table
+
+# Create a VM with specific options: username, size, VNet, and subnet
+az vm create -g "ResourceGroup1" -n "Vm-test2" --image "MicrosoftWindowsServer:WindowsServer:2019-datacenter:latest" --admin-username "UserAdmin" --size "Standard_DS1_v2" --vnet-name "Vnet1" --subnet "Subnet1"
+
+# Create a new managed data disk
+az disk create -n "Data-Disk01" -g "ResourceGroup1" -l "West US 2" --size-gb 16
+
+# Attach the disk to an existing VM
+az vm disk attach --vm-name "Vm-test" --lun 0 -g "ResourceGroup1" -n "Data-Disk01"
+
+# Create a new storage account in the "West US 2" region
+az storage account create -n "saccount741852321" -g "Rg001" --kind StorageV2 --sku Standard_LRS -l westus2
+
+# Delete a storage account
+az storage account delete -n "saccount741852321" -g "Rg001"
+
+# Create a new App Service Plan in "Rg001"
+az appservice plan create -n "WebAppPlan01" -g "Rg001" --sku F1
+
+# Create a new web app under the app service plan
+az webapp create -n "mywebapp01net" -g "Rg001" --plan "WebAppPlan01"
+
+# Delete the App Service Plan (which will also delete the associated web app)
+az appservice plan delete -n "WebAppPlan01" -g "Rg001"
+
+# Delete a specific VM
+az vm delete -n "Vm-test2" -g "ResourceGroup1" --yes --no-wait
+
+# Delete a resource group (and all resources in it)
+az group delete -n "ResourceGroup1" --no-wait
+
