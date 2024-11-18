@@ -1,0 +1,170 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "functions": [],
+    "variables": {
+        "RGLocation" : "West US 2"
+    },
+    "resources": [
+        {
+            "name": "Vnet1",
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2023-11-01",
+            "location": "[variables('RGLocation')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/16"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "Subnet-1",
+                        "properties": {
+                            "addressPrefix": "10.0.0.0/24"
+                            }
+                        },
+                    {
+                        "name": "Subnet-2",
+                        "properties": {
+                            "addressPrefix": "10.0.1.0/24"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "myPublicIP1",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2023-11-01",
+            "location": "[resourceGroup().location]",
+            "sku" : {
+                "name" : "Standard"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Static"
+                }
+        },
+        {
+            "name": "Nic01",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2023-11-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn" : [
+                "[resourceId('Microsoft.Network/virtualNetworks', 'Vnet1')]",
+                "[resourceId('Microsoft.Network/publicIPAddresses', 'myPublicIP1')]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', 'Nsg01')]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipConfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'Vnet1', 'subnet-1')]"
+                            },
+                            "publicIPAddress" : {
+                                "id" : "[resourceId('Microsoft.Network/PublicIPAddresses', 'myPublicIP1')]"
+                            }
+                        }
+                    }
+                ],
+            "networkSecurityGroup" : {
+                "id" : "[resourceId('Microsoft.Network/networkSecurityGroups', 'Nsg01')]"
+            }
+            }
+        },
+        {
+            "name": "rgstoracc741852963123",
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2023-04-01",
+            "location": "[resourceGroup().location]",
+            "kind": "StorageV2",
+            "sku": {
+                "name": "Standard_LRS"
+            }
+        },
+        {
+            "name": "Nsg01",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2023-11-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "nsgRule1",
+                        "properties": {
+                            "description": "Allow_RDP",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },        
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2023-03-01",
+            "name": "app-Vm",
+            "location": "[variables('RGLocation')]",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_D2_v2"
+                },
+                "osProfile": {
+                    "computerName": "appVm",
+                    "adminUsername": "useradmin",
+                    "adminPassword": "Pass@Word123"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2019-Datacenter",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "StandardSSD_LRS"
+                        }
+                    },
+                    "dataDisks": [
+                        {
+                            "diskSizeGB": 1023,
+                            "lun": 0,
+                            "createOption": "Empty"
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', 'Nic01')]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[reference(resourceId('Microsoft.Storage/storageAccounts', 'rgstoracc741852963123'), '2022-05-01').primaryEndpoints.blob]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', 'Nic01')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', 'rgstoracc741852963123')]"
+            ]
+        }
+    
+    ],
+    "outputs": {}
+}
